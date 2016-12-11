@@ -281,10 +281,9 @@ impl RSASigningState {
     /// Construct an `RSASigningState` for the given `RSAKeyPair`.
     pub fn new(key_pair: std::sync::Arc<RSAKeyPair>)
                -> Result<Self, error::Unspecified> {
-        let blinding = try!(blinding::Blinding::new());
         Ok(RSASigningState {
             key_pair: key_pair,
-            blinding: blinding,
+            blinding: blinding::Blinding::new(),
         })
     }
 
@@ -342,13 +341,13 @@ impl RSASigningState {
         // `Positive::from_be_bytes_padded()`.
         let base = try!(bigint::Positive::from_be_bytes_padded(
             untrusted::Input::from(signature)));
-        let mut base = try!(base.into_elem_decoded(&key.n));
+        let base = try!(base.into_elem_decoded(&key.n));
 
-        let mut rand = rand::RAND::new(rng);
-
-        try!(bssl::map_result(unsafe {
-            GFp_rsa_private_transform(&rsa, base.as_mut_ref(),
-                                      blinding.as_mut_ref(), &mut rand)
+        let base = try!(blinding.blind(base, &key.e, &key.n, rng, |mut base| {
+            try!(bssl::map_result(unsafe {
+                GFp_rsa_private_transform(&rsa, base.as_mut_ref())
+            }));
+            Ok(base)
         }));
 
         base.fill_be_bytes(signature)
@@ -358,9 +357,8 @@ impl RSASigningState {
 
 #[allow(improper_ctypes)]
 extern {
-    fn GFp_rsa_private_transform(rsa: &RSA, base: &mut bigint::BIGNUM,
-                                 blinding: &mut blinding::BN_BLINDING,
-                                 rng: &mut rand::RAND) -> c::int;
+    fn GFp_rsa_private_transform(rsa: &RSA, base: &mut bigint::BIGNUM)
+                                 -> c::int;
 }
 
 
@@ -470,14 +468,13 @@ mod tests {
         let mut signing_state =
             signature::RSASigningState::new(key_pair).unwrap();
 
-        let blinding_counter = unsafe { blinding::GFp_BN_BLINDING_COUNTER };
-
-        for _ in 0..(blinding_counter + 1) {
-            let prev_counter = signing_state.blinding.counter();
+        for _ in 0..(blinding::REMAINING_MAX + 1) {
+            let prev_remaining = signing_state.blinding.remaining();
             let _ = signing_state.sign(&signature::RSA_PKCS1_SHA256, &rng,
                                        MESSAGE, &mut signature);
-            let counter = signing_state.blinding.counter();
-            assert_eq!(counter, (prev_counter + 1) % blinding_counter);
+            let remaining = signing_state.blinding.remaining();
+            assert_eq!((remaining + 1) % blinding::REMAINING_MAX,
+                       prev_remaining);
         }
     }
 

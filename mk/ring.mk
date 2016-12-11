@@ -43,7 +43,6 @@ RING_SRCS = $(addprefix $(RING_PREFIX), \
   crypto/mem.c \
   crypto/modes/gcm.c \
   crypto/rand/sysrand.c \
-  crypto/rsa/blinding.c \
   crypto/rsa/rsa_impl.c \
   $(NULL)) \
   $(RING_$(TARGET_ARCH_NORMAL)_SRCS) \
