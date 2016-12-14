@@ -254,6 +254,16 @@ pub fn elem_mul_mixed<F: Field>(a: &Elem<F>, b: ElemDecoded<F>, m: &Modulus<F>)
     })
 }
 
+pub fn elem_exp_vartime<F: Field>(
+        mut base: ElemDecoded<F>, exponent: &OddPositive, m: &Modulus<F>)
+        -> Result<ElemDecoded<F>, error::Unspecified> {
+    try!(bssl::map_result(unsafe {
+        GFp_BN_mod_exp_mont_vartime(base.value.as_mut_ref(),
+                                    base.value.as_ref(), exponent.as_ref(),
+                                    m.as_ref())
+    }));
+    Ok(base)
+}
 
 /// Nonnegative integers: `Positive` ∪ {0}.
 struct Nonnegative(*mut BIGNUM);
@@ -322,6 +332,9 @@ extern {
     // `r` and/or 'a' and/or 'b' may alias.
     fn GFp_BN_mod_mul_mont(r: *mut BIGNUM, a: *const BIGNUM, b: *const BIGNUM,
                            m: &BN_MONT_CTX) -> c::int;
+    // `r` and `a` may alias.
+    fn GFp_BN_mod_exp_mont_vartime(r: *mut BIGNUM, a: *const BIGNUM, p: &BIGNUM,
+                                   mont: &BN_MONT_CTX) -> c::int;
 
     // The use of references here implies lack of aliasing.
     fn GFp_BN_copy(a: &mut BIGNUM, b: &BIGNUM) -> c::int;
