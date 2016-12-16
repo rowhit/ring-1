@@ -124,13 +124,7 @@ RING_aarch64_SRCS = $(addprefix $(RING_PREFIX), \
   $(RING_ARM_SHARED_SRCS) \
   $(NULL)
 
-RING_TEST_SRCS = $(addprefix $(RING_PREFIX), \
-  crypto/bn/bn_test.cc \
-  crypto/constant_time_test.c \
-  crypto/test/bn_test_convert.c \
-  crypto/test/bn_test_lib.c \
-  crypto/test/file_test.cc \
-  $(NULL))
+RING_TEST_SRCS = $(NULL)
 
 RING_CORE_OBJS = \
   $(addprefix $(OBJ_PREFIX), \

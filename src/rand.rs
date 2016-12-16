@@ -26,7 +26,7 @@
 //! documentation for more details.
 
 
-#[cfg(any(target_os = "linux", windows, test))]
+#[cfg(any(target_os = "linux", target_os = "redox", windows, test))]
 use c;
 
 #[cfg(test)]
@@ -107,17 +107,18 @@ impl SecureRandom for SystemRandom {
     }
 }
 
-#[cfg(not(any(target_os = "linux", windows)))]
+#[cfg(not(any(target_os = "linux", target_os = "redox", windows)))]
 use self::urandom::fill as fill_impl;
 
 #[cfg(any(all(target_os = "linux", not(feature = "dev_urandom_fallback")),
+          target_os = "redox",
           windows))]
 use self::sysrand::fill as fill_impl;
 
 #[cfg(all(target_os = "linux", feature = "dev_urandom_fallback"))]
 use self::sysrand_or_urandom::fill as fill_impl;
 
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_os = "redox", windows))]
 mod sysrand {
     use {bssl, error};
 
@@ -215,7 +216,7 @@ pub unsafe extern fn RAND_bytes(rng: *mut RAND, dest: *mut u8,
 }
 
 
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_os = "redox", windows))]
 extern {
     static GFp_sysrand_chunk_max_len: c::size_t;
     fn GFp_sysrand_chunk(buf: *mut u8, len: c::size_t) -> c::int;
