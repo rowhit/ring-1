@@ -227,7 +227,9 @@ CPPFLAGS += \
 # it's use seems questionable for that kind of target anyway.
 # The launchpad.net arm-none-eabi-gcc toolchain (at least) uses -fshort-enums.
 ifneq ($(TARGET_SYS),none)
-CPPFLAGS += -fstack-protector
+	ifneq ($(findstring redox,$(TARGET_SYS)),redox)
+		CPPFLAGS += -fstack-protector
+	endif
 endif
 
 
