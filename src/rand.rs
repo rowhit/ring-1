@@ -26,7 +26,7 @@
 //! documentation for more details.
 
 
-#[cfg(any(target_os = "linux", target_os = "redox", windows, test))]
+#[cfg(any(target_os = "linux", windows, test))]
 use c;
 
 #[cfg(test)]
@@ -107,18 +107,17 @@ impl SecureRandom for SystemRandom {
     }
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "redox", windows)))]
+#[cfg(not(any(target_os = "linux", windows)))]
 use self::urandom::fill as fill_impl;
 
 #[cfg(any(all(target_os = "linux", not(feature = "dev_urandom_fallback")),
-          target_os = "redox",
           windows))]
 use self::sysrand::fill as fill_impl;
 
 #[cfg(all(target_os = "linux", feature = "dev_urandom_fallback"))]
 use self::sysrand_or_urandom::fill as fill_impl;
 
-#[cfg(any(target_os = "linux", target_os = "redox", windows))]
+#[cfg(any(target_os = "linux", windows))]
 mod sysrand {
     use {bssl, error};
 
@@ -130,6 +129,28 @@ mod sysrand {
             }));
         }
         Ok(())
+    }
+}
+
+// Keep the `cfg` conditions in sync with the conditions in lib.rs.
+#[cfg(target_os = "redox")]
+mod urandom {
+    extern crate std;
+    use error;
+
+    pub fn fill(dest: &mut [u8]) -> Result<(), error::Unspecified> {
+        lazy_static! {
+            static ref FILE: Result<std::fs::File, std::io::Error> =
+                std::fs::File::open("rand:");
+        }
+
+        match *FILE {
+            Ok(ref file) => {
+                use self::std::io::Read;
+                (&*file).read_exact(dest).map_err(|_| error::Unspecified)
+            },
+            Err(_) => Err(error::Unspecified),
+        }
     }
 }
 
@@ -216,7 +237,7 @@ pub unsafe extern fn RAND_bytes(rng: *mut RAND, dest: *mut u8,
 }
 
 
-#[cfg(any(target_os = "linux", target_os = "redox", windows))]
+#[cfg(any(target_os = "linux", windows))]
 extern {
     static GFp_sysrand_chunk_max_len: c::size_t;
     fn GFp_sysrand_chunk(buf: *mut u8, len: c::size_t) -> c::int;
